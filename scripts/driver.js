@@ -5,23 +5,19 @@ MySample.main = (function() {
     let previousTime = performance.now();
     let indices = [];
     let vertices = [];
-    let normals = [0, 0, 1];
+    let normals = [];
     let triangles = [];
-    let view = new Float32Array([
-        1, 0, 0, 0,
-        0, 1, 0, 0,
-        0, 0, 1, 0,
-        0, 0, 0, 1
-    ]);
-    let right = .25;
-    let left = -.25;
-    let top = .25;
-    let bottom = .25;
+    let shininess = 200.0;
+    let right = .2;
+    let left = -.2;
+    let top = .2;
+    let bottom = .2;
     let near = 1;
     let far = 10;
+
     let translate1 = new Float32Array ([
         1, 0, 0, 0,
-        0, 1, 0, 0,
+        0, 1, 0, -.1,
         0, 0, 1, -2,
         0, 0, 0, 1
     ]);
@@ -31,7 +27,6 @@ MySample.main = (function() {
         0, 0, 1, 0,
         0, 0, 0, 1
     ]);
-
     let perspectiveProjection = new Float32Array([
         near / right, 0, 0, 0,
         0, near / top, 0, 0,
@@ -63,9 +58,17 @@ MySample.main = (function() {
         let vertexShader = gl.createShader(gl.VERTEX_SHADER);
         gl.shaderSource(vertexShader, vertexShaderSource);
         gl.compileShader(vertexShader);
+        if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS)) {
+            console.error('ERROR compiling vertex shader!', gl.getShaderInfoLog(vertexShader));
+            return;
+        }
         let fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
         gl.shaderSource(fragmentShader, fragmentShaderSource);
         gl.compileShader(fragmentShader);
+        if (!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS)) {
+            console.error('ERROR compiling fragment shader!', gl.getShaderInfoLog(fragmentShader));
+            return;
+        }
         gl.attachShader(shaderProgram, vertexShader);
         gl.attachShader(shaderProgram, fragmentShader);
         gl.linkProgram(shaderProgram);
@@ -109,7 +112,48 @@ MySample.main = (function() {
                 }
             }
         }
+        for(let i = 0; i < triangles.length - 1; i++){
+            let x = 0;
+            let y = 0;
+            let z = 0;
+            let nx = 0;
+            let ny = 0;
+            let nz = 0;
+            if(triangles[i] !== undefined){
+                for (let k = 0; k < triangles[i].length - 1; k++){
+                    let [x1, y1, z1] = elementVertex[triangles[i][k][0]].map(parseFloat);
+                    let [x2, y2, z2] = elementVertex[triangles[i][k][1]].map(parseFloat);
+                    let [x3, y3, z3] = elementVertex[triangles[i][k][2]].map(parseFloat);
+                    let v = [x1 - x3, y1 - y3, z1 - z3]; 
+                    let w = [x2 - x3, y2 - y3, z2 - z3];
+                    let normal = [w[1]*v[2] - w[2]*v[1], w[2]*v[0] - w[0]*v[2],w[0]*v[1] - w[1]*v[0]];
+                    x += normal[0];
+                    y += normal[1];
+                    z += normal[2];
+                    let magnitude = Math.sqrt(x **2 + y ** 2 + z ** 2);
+                    if(magnitude != 0){
+                        x /= magnitude;
+                        y /= magnitude;
+                        z /= magnitude;
+                        nx += x;
+                        ny += y;
+                        nz += z; 
+                    }
+                }
+                nx /= triangles[i].length;
+                ny /= triangles[i].length;
+                nz /= triangles[i].length;
+                normals[i] = [nx, ny, nz];
+            }else {
+                normals[i] = [0, 0, 0];
+            }
+        }
         elementVertex = elementVertex.flat().map(parseFloat);
+        let maxVal = Math.max(elementVertex);
+        elementVertex.forEach(el => {
+            el = el / maxVal;
+        });
+        normals = new Float32Array(normals.flat());
         vertices = new Float32Array(elementVertex);
         indices = new Uint32Array(elementFaceResult);
         bufferAndShader();
@@ -118,15 +162,35 @@ MySample.main = (function() {
     
 
     let theta = 0;
-    let newFile = "models/bunny.ply"
+    let d1 = 0.0, 
+        d2 = 0.0,
+        d3  = 0.0,
+        d4 = 0.0;
+    let s1 = 0, 
+        s2 = 0,
+        s3 = 0, 
+        s4 = 0;
     async function update(elapsedTime) {
         if(theta <= 10){
-            newFile = "models/bunny.ply"
+            d1 = 0.0;
+            d2 = 0.8;
+            d3 = 0.0;
+            d4 = 0.0
+            s1 = 0;
+            s2 = 0;
+            s3 = 0;
+            s4 = 0;
         }else if(theta > 10 && theta <= 20){
-            newFile = "models/happy_vrip_res4.ply"
+            d1 = 0;
+            d2 = 0.3;
+            d3 = 0;
+            d4 = 0;
+            s1 = 0.5;
+            s2 = 0.5;
+            s3 = 0.5;
+            s4 = 0.0;
         }else{
-            newFile = "models/bunny.ply";
-            theta =0
+            theta = 0;
         }
         let xzRotation = new Float32Array([
             Math.cos(theta), 0, Math.sin(theta), 0,
@@ -134,17 +198,25 @@ MySample.main = (function() {
             -Math.sin(theta), 0, Math.cos(theta), 0,
             0, 0, 0, 1
         ]);
+        
+        let uAmbientProduct = gl.getUniformLocation(shaderProgram, "uAmbientProduct");
+        gl.uniform4f(uAmbientProduct, 0.0,0.0,0.0, 0.0); 
 
+        let uDiffuseProduct = gl.getUniformLocation(shaderProgram, "uDiffuseProduct");
+        gl.uniform4f(uDiffuseProduct, d1, d2, d3, d4); 
+
+        let uSpecularProduct = gl.getUniformLocation(shaderProgram, "uSpecularProduct");
+        gl.uniform4f(uSpecularProduct, s1, s2, s3, s4); 
+        let mShininess = gl.getUniformLocation(shaderProgram, "uShininess");
+        gl.uniform1f(mShininess, shininess);
         theta += elapsedTime / 1000;
         let mProjection = gl.getUniformLocation(shaderProgram, "mProjection");
         gl.uniformMatrix4fv(mProjection, false, transposeMatrix4x4(perspectiveProjection));
-        let mView = gl.getUniformLocation(shaderProgram, "mView");
-        gl.uniformMatrix4fv(mView, false, transposeMatrix4x4(view));
         let mModel = gl.getUniformLocation(shaderProgram, "mModel");
         let translation = multiplyMatrix4x4(translate1, xzRotation);
         model = multiplyMatrix4x4(translation, translate2);
         gl.uniformMatrix4fv(mModel, false, transposeMatrix4x4(model));
-        gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+
     }
     function render() {
         gl.clearColor(
@@ -169,7 +241,7 @@ MySample.main = (function() {
     }
     console.log('initializing...');
     
-    // loadFile("models/bunny.ply");
-    loadFile("models/happy_vrip_res4.ply");
+    // loadFile("models/buddha.ply");
+    loadFile("models/dragon.ply");
 
 }());
