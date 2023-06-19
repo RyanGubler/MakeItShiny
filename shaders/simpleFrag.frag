@@ -1,13 +1,16 @@
 #version 300 es
 precision lowp float;
+in vec3 N, L, E;
+in vec2 vTexCoord;
 uniform vec4 uAmbientProduct;
 uniform vec4 uDiffuseProduct;
 uniform vec4 uSpecularProduct;
 uniform float uShininess;
-in vec3 N, L, E;
-out vec4 fColor;
+uniform sampler2D uSampler;
+out vec4 outColor;
 void main()
 {
+    vec4 color = texture(uSampler, vTexCoord);
     vec3 H = normalize(L + E);
     vec4 ambient = uAmbientProduct;
 
@@ -19,6 +22,6 @@ void main()
     if (dot(L, N) < 0.0) {
         specular = vec4(0.0, 0.0, 0.0, 1.0);
     }
-    fColor = ambient + diffuse + specular;
-    fColor.a = 1.0;
+    outColor = ambient + diffuse + specular;
+    outColor.a = 1.0;
 }
