@@ -8,13 +8,44 @@ MySample.main = (function() {
     let normals = [];
     let triangles = [];
     let shininess = 200.0;
-    let right = .2;
-    let left = -.2;
-    let top = .2;
-    let bottom = .2;
+    let right = .1;
+    let left = -.1;
+    let top = .1;
+    let bottom = .1;
     let near = 1;
     let far = 10;
-
+    let camera = new Float32Array([
+        1, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, 1, 0,
+        0, 0, 0, 1
+    ]);
+    let light1 = new Float32Array([1.0, 1.0, 2.0]);
+    let light2 = new Float32Array([0.0, -2.0, 0.0]);
+    let light3 = new Float32Array([-1.0, 2.0, -2.0]);
+    let ambientLight = new Float32Array([
+        1.0,
+        1.0,
+        1.0
+    ]);
+    let specularLight = new Float32Array([
+        1.0,
+        1.0,
+        1.0
+    ]);
+    let specDiffuse = new Float32Array([
+        0.0,
+        0.9,
+        0.63
+    ]);
+    let diffuseLight1 = new Float32Array([1.0, 0.0, 0.0]);
+    let diffuseLight2 = new Float32Array([0.0, 1.0, 0.0]);
+    let diffuseLight3 = new Float32Array([0.0, 0.0, 1.0]);
+    let mDiffuse = new Float32Array([
+        0.0,
+        0.0,
+        0.0
+    ]);  
     let translate1 = new Float32Array ([
         1, 0, 0, 0,
         0, 1, 0, -.1,
@@ -42,6 +73,7 @@ MySample.main = (function() {
     let vertexBuffer = gl.createBuffer();
     let normalBuffer = gl.createBuffer();
     let indexBuffer = gl.createBuffer();
+
     let shaderProgram = gl.createProgram();
     async function bufferAndShader(){
         gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
@@ -159,63 +191,61 @@ MySample.main = (function() {
         bufferAndShader();
     }
 
-    
-
-    let theta = 0;
-    let d1 = 0.0, 
-        d2 = 0.0,
-        d3  = 0.0,
-        d4 = 0.0;
-    let s1 = 0, 
-        s2 = 0,
-        s3 = 0, 
-        s4 = 0;
+ 
+    let theta = 0
     async function update(elapsedTime) {
-        if(theta <= 10){
-            d1 = 0.0;
-            d2 = 0.8;
-            d3 = 0.0;
-            d4 = 0.0
-            s1 = 0;
-            s2 = 0;
-            s3 = 0;
-            s4 = 0;
-        }else if(theta > 10 && theta <= 20){
-            d1 = 0;
-            d2 = 0.3;
-            d3 = 0;
-            d4 = 0;
-            s1 = 0.5;
-            s2 = 0.5;
-            s3 = 0.5;
-            s4 = 0.0;
-        }else{
-            theta = 0;
-        }
+        theta += elapsedTime/1000;
+            if (theta <= 10){
+                diffuseLight1 = [0.0, 0.0, 0.0];
+                specDiffuse = [.5, .29, 0.0];
+                specularLight = [1, 1, 1]
+            }else if(theta > 10 && theta <= 20){
+                ambientLight = [1.0, 1.0, 1.0];
+                mDiffuse = [0.929,0.835, 0.949];
+                specularLight = [0.5, 0.29, 0.0];
+                specDiffuse = [0.0, 0.0, 0.0]; 
+            }else{
+                theta = 0;
+            }
+
         let xzRotation = new Float32Array([
             Math.cos(theta), 0, Math.sin(theta), 0,
             0, 1, 0, 0,
             -Math.sin(theta), 0, Math.cos(theta), 0,
             0, 0, 0, 1
         ]);
-        
-        let uAmbientProduct = gl.getUniformLocation(shaderProgram, "uAmbientProduct");
-        gl.uniform4f(uAmbientProduct, 0.0,0.0,0.0, 0.0); 
-
-        let uDiffuseProduct = gl.getUniformLocation(shaderProgram, "uDiffuseProduct");
-        gl.uniform4f(uDiffuseProduct, d1, d2, d3, d4); 
-
-        let uSpecularProduct = gl.getUniformLocation(shaderProgram, "uSpecularProduct");
-        gl.uniform4f(uSpecularProduct, s1, s2, s3, s4); 
-        let mShininess = gl.getUniformLocation(shaderProgram, "uShininess");
-        gl.uniform1f(mShininess, shininess);
-        theta += elapsedTime / 1000;
-        let mProjection = gl.getUniformLocation(shaderProgram, "mProjection");
-        gl.uniformMatrix4fv(mProjection, false, transposeMatrix4x4(perspectiveProjection));
-        let mModel = gl.getUniformLocation(shaderProgram, "mModel");
-        let translation = multiplyMatrix4x4(translate1, xzRotation);
-        model = multiplyMatrix4x4(translation, translate2);
-        gl.uniformMatrix4fv(mModel, false, transposeMatrix4x4(model));
+        let translateOut = multiplyMatrix4x4(translate1, xzRotation);
+        model = multiplyMatrix4x4(translateOut, translate2);
+        let spec1 = gl.getUniformLocation(shaderProgram, 'uLight1');
+        gl.uniform3fv(spec1, light1);
+        let spec2 = gl.getUniformLocation(shaderProgram, 'uLight2');
+        gl.uniform3fv(spec2, light2);
+        let spec3 = gl.getUniformLocation(shaderProgram, 'uLight3');
+        gl.uniform3fv(spec3, light3);
+        let diff1 = gl.getUniformLocation(shaderProgram, 'uDiffuse1');
+        gl.uniform3fv(diff1, diffuseLight1);
+        let diff2 = gl.getUniformLocation(shaderProgram, 'uDiffuse2');
+        gl.uniform3fv(diff2, diffuseLight2);
+        let diff3 = gl.getUniformLocation(shaderProgram, 'uDiffuse3');
+        gl.uniform3fv(diff3, diffuseLight3);
+        let specular = gl.getUniformLocation(shaderProgram, 'uSpecular');
+        gl.uniform3fv(specular, specularLight);
+        let specularDiff= gl.getUniformLocation(shaderProgram, 'uSpecularDiffuse');
+        gl.uniform3fv(specularDiff, specDiffuse);
+        let ambient = gl.getUniformLocation(shaderProgram, 'uAmbient');
+        gl.uniform3fv(ambient, ambientLight);
+        let mDiff = gl.getUniformLocation(shaderProgram, 'mDiffuse');
+        gl.uniform3fv(mDiff, mDiffuse);
+        let uPerspective = gl.getUniformLocation(shaderProgram, 'uProjection');
+        gl.uniformMatrix4fv(uPerspective,false,transposeMatrix4x4(perspectiveProjection));
+        let uView = gl.getUniformLocation(shaderProgram, 'uView');
+        gl.uniformMatrix4fv(uView,false,transposeMatrix4x4(camera));
+        let uModel = gl.getUniformLocation(shaderProgram,'uModel');
+        gl.uniformMatrix4fv(uModel,false,transposeMatrix4x4(model));
+        let fragmentView = gl.getUniformLocation(shaderProgram, 'uView2');
+        gl.uniformMatrix4fv(fragmentView,false,transposeMatrix4x4(camera));
+        let fragmentModel = gl.getUniformLocation(shaderProgram,'uModel2');
+        gl.uniformMatrix4fv(fragmentModel,false,transposeMatrix4x4(model));
 
     }
     function render() {
