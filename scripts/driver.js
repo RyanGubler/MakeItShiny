@@ -284,5 +284,6 @@ MySample.main = (function() {
     
     loadFile("models/buddha.ply");
     // loadFile("models/dragon.ply");
+    // loadFile("models/bunny.ply");
 
 }());
