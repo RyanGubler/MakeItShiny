@@ -20,9 +20,9 @@ MySample.main = (function() {
         0, 0, 1, 0,
         0, 0, 0, 1
     ]);
-    let light1 = new Float32Array([1.0, 1.0, 2.0]);
-    let light2 = new Float32Array([0.0, -2.0, 0.0]);
-    let light3 = new Float32Array([-1.0, 2.0, -2.0]);
+    let light1 = new Float32Array([0.0, 0.0, 0.0]);
+    let light2 = new Float32Array([0.0, 0.0, 0.0]);
+    let light3 = new Float32Array([0.0, 0.0, 0.0]);
     let ambientLight = new Float32Array([
         1.0,
         1.0,
@@ -195,19 +195,30 @@ MySample.main = (function() {
     let theta = 0
     async function update(elapsedTime) {
         theta += elapsedTime/1000;
-            if (theta <= 10){
-                diffuseLight1 = [0.0, 0.0, 0.0];
-                specDiffuse = [.5, .29, 0.0];
-                specularLight = [1, 1, 1]
-            }else if(theta > 10 && theta <= 20){
-                ambientLight = [1.0, 1.0, 1.0];
-                mDiffuse = [0.929,0.835, 0.949];
-                specularLight = [0.5, 0.29, 0.0];
-                specDiffuse = [0.0, 0.0, 0.0]; 
-            }else{
-                theta = 0;
-            }
-
+        if (theta <= 15){
+            light1 = [1.0, 1.0, 1.0];
+            light2 = [0.5, -2.0, 0.0];
+            light3 = [-1.0, 2.0, -2.0];
+            diffuseLight1 = [-1.0, 0.0, 0.0];
+            diffuseLight2 = [0.0, 1.0, -1.0];
+            diffuseLight3 = [1.0, -1.0, -1.0];
+            specDiffuse = [.5, .29, 0.0];
+            specularLight = [1, 1, 1];
+            mDiffuse = [0.0,0.0, 0.0];
+        }else if(theta > 15 && theta <= 25){
+            light1 = [1.0, 1.0, 2.0];
+            light2 = [0.0, -2.0, 0.0];
+            light3 = [-1.0, 2.0, -2.0];
+            diffuseLight1 = [.5, 0.0, 0.0];
+            diffuseLight2 = [0.0, 0.0, 0.0];
+            diffuseLight3 = [0.0, 0.0, 0.0];
+            ambientLight = [1.0, 1.0, 1.0];
+            mDiffuse = [0.7,0.5, 0.7];
+            specularLight = [0.5, 0.29, 0.0];
+            specDiffuse = [1.0, 1.0, 1.0]; 
+        }else{
+            theta = 0;
+        }
         let xzRotation = new Float32Array([
             Math.cos(theta), 0, Math.sin(theta), 0,
             0, 1, 0, 0,
@@ -250,9 +261,9 @@ MySample.main = (function() {
     }
     function render() {
         gl.clearColor(
-            0.3921568627450980392156862745098,
-            0.58431372549019607843137254901961,
-            0.92941176470588235294117647058824,
+            0,
+            0,
+            0,
             1.0
         );
         gl.clearDepth(1.0);
@@ -271,7 +282,7 @@ MySample.main = (function() {
     }
     console.log('initializing...');
     
-    // loadFile("models/buddha.ply");
-    loadFile("models/dragon.ply");
+    loadFile("models/buddha.ply");
+    // loadFile("models/dragon.ply");
 
 }());
